@@ -121,7 +121,7 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "8080"
+      - "443:8080"
     command: ["airflow", "webserver", "--ssl-certfile", "/etc/ssl/certs/cert.pem", "--ssl-keyfile", "/etc/ssl/certs/key.pem"]
     volumes:
       - ./jobs:/opt/airflow/jobs
