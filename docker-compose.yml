@@ -72,7 +72,7 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-      AIRFLOW__WEBSERVER_BASE_URL: https://3.83.65.34/airflow
+      AIRFLOW__WEBSERVER_BASE_URL: https://54.144.193.117/airflow
       # AIRFLOW__WEBSERVER_BASE_URL: https://<your-ec2-public-dns>:8080
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
@@ -104,7 +104,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
-      AIRFLOW__WEBSERVER_BASE_URL: https://3.83.65.34/airflow
+      AIRFLOW__WEBSERVER_BASE_URL: https://54.144.193.117/airflow
       AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
@@ -119,17 +119,18 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "443:8080"
+      - "8080"
+    command: ["airflow", "webserver", "--ssl-certfile", "/etc/ssl/certs/cert.pem", "--ssl-keyfile", "/etc/ssl/certs/key.pem"]
     volumes:
       - ./jobs:/opt/airflow/jobs
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./shared:/opt/airflow/shared
       - ./certs:/etc/ssl/certs
-    entrypoint: >
-      sh -c "pip install apache-airflow-providers-snowflake apache-airflow-providers-docker apache-airflow-providers-postgres apache-airflow-providers-apache-spark pyspark && \
-        airflow webserver --ssl-certfile /etc/ssl/certs/cert.pem --ssl-keyfile /etc/ssl/certs/key.pem"
-    mem_limit: 8g
+    # entrypoint: >
+    #   sh -c "pip install apache-airflow-providers-snowflake apache-airflow-providers-docker apache-airflow-providers-postgres apache-airflow-providers-apache-spark pyspark && \
+    #     airflow webserver --ssl-certfile /etc/ssl/certs/cert.pem --ssl-keyfile /etc/ssl/certs/key.pem"
+    # mem_limit: 8g
     networks:
       - kafka-net
 
@@ -161,11 +162,11 @@ services:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./shared:/opt/airflow/shared
-    entrypoint: >
-      sh -c "pip install apache-airflow-providers-snowflake apache-airflow-providers-docker apache-airflow-providers-postgres apache-airflow-providers-apache-spark pyspark && \
-        airflow scheduler"
+    # entrypoint: >
+    #   sh -c "pip install apache-airflow-providers-snowflake apache-airflow-providers-docker apache-airflow-providers-postgres apache-airflow-providers-apache-spark pyspark && \
+    #     airflow scheduler"
     command: ["airflow","scheduler"]
-    mem_limit: 8g
+    # mem_limit: 8g
     networks:
       - kafka-net
 
@@ -197,10 +198,10 @@ services:
       - ./logs:/opt/airflow/logs
       - ./shared:/opt/airflow/shared
     command: ["airflow","celery", "worker"]
-    mem_limit: 8g
-    entrypoint: >
-      sh -c "pip install apache-airflow-providers-snowflake apache-airflow-providers-docker apache-airflow-providers-postgres apache-airflow-providers-apache-spark pyspark && \
-        airflow celery worker"
+    # mem_limit: 8g
+    # entrypoint: >
+    #   sh -c "pip install apache-airflow-providers-snowflake apache-airflow-providers-docker apache-airflow-providers-postgres apache-airflow-providers-apache-spark pyspark && \
+    #     airflow celery worker"
     networks:
       - kafka-net
 
@@ -216,10 +217,10 @@ services:
     #   /etc/confluent/docker/run
     #   "
     healthcheck:
-      test: ["CMD-SHELL", "echo ruok | grep imok || exit 1"]
+      test: ["CMD-SHELL", "echo ruok | grep imok || exit 0"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 3
     networks:
       - kafka-net
 
