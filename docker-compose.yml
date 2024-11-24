@@ -72,12 +72,13 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-      AIRFLOW__WEBSERVER_BASE_URL: https://54.144.193.117/airflow
+      AIRFLOW__WEBSERVER_BASE_URL: https://18.233.152.171/airflow
       # AIRFLOW__WEBSERVER_BASE_URL: https://<your-ec2-public-dns>:8080
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_CLASS_IN_EXTRA: 'true'
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_PATH_IN_EXTRA: 'true'
+      AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX: 'True'
     depends_on:
       - db
     networks:
@@ -104,13 +105,14 @@ services:
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
-      AIRFLOW__WEBSERVER_BASE_URL: https://54.144.193.117/airflow
+      AIRFLOW__WEBSERVER_BASE_URL: https://18.233.152.171/airflow
       AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_CLASS_IN_EXTRA: 'true'
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_PATH_IN_EXTRA: 'true'
+      AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX: 'True'
     depends_on:
       db:
         condition: service_healthy
@@ -150,6 +152,7 @@ services:
       AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_CLASS_IN_EXTRA: 'true'
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_PATH_IN_EXTRA: 'true'
+      AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX: 'True'
     depends_on:
       db:
         condition: service_healthy
