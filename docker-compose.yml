@@ -72,7 +72,7 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-      AIRFLOW__WEBSERVER_BASE_URL: https://34.238.135.192/airflow
+      AIRFLOW__WEBSERVER_BASE_URL: https://3.83.65.34/airflow
       # AIRFLOW__WEBSERVER_BASE_URL: https://<your-ec2-public-dns>:8080
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
@@ -104,7 +104,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
-      AIRFLOW__WEBSERVER_BASE_URL: https://34.238.135.192/airflow
+      AIRFLOW__WEBSERVER_BASE_URL: https://3.83.65.34/airflow
       AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
@@ -209,14 +209,14 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    command: >
-      bash -c "
-      apt-get update &&
-      apt-get install -y netcat wget &&
-      /etc/confluent/docker/run
-      "
+    # command: >
+    #   bash -c "
+    #   apt-get update &&
+    #   apt-get install -y netcat wget &&
+    #   /etc/confluent/docker/run
+    #   "
     healthcheck:
-      test: ["CMD-SHELL", "echo ruok | wget -qO- localhost:2181 | grep imok"]
+      test: ["CMD-SHELL", "echo ruok | grep imok || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
