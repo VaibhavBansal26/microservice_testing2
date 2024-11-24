@@ -207,31 +207,47 @@ services:
     #     airflow celery worker"
     networks:
       - kafka-net
-
+  
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    build:
+      context: .
+      dockerfile: ./zookeeper/Dockerfile
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    # command: >
-    #   bash -c "
-    #   apt-get update &&
-    #   apt-get install -y netcat wget &&
-    #   /etc/confluent/docker/run
-    #   "
-    command: >
-      bash -c "
-      apt-get update &&
-      apt-get install -y grep &&
-      /etc/confluent/docker/run
-      "
     healthcheck:
-      test: ["CMD-SHELL", "echo ruok | grep imok || exit 1"]
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
     networks:
       - kafka-net
+
+
+  # zookeeper:
+  #   image: confluentinc/cp-zookeeper:latest
+  #   environment:
+  #     ZOOKEEPER_CLIENT_PORT: 2181
+  #     ZOOKEEPER_TICK_TIME: 2000
+  #   # command: >
+  #   #   bash -c "
+  #   #   apt-get update &&
+  #   #   apt-get install -y netcat wget &&
+  #   #   /etc/confluent/docker/run
+  #   #   "
+  #   command: >
+  #     bash -c "
+  #     apt-get update &&
+  #     apt-get install -y grep &&
+  #     /etc/confluent/docker/run
+  #     "
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "echo ruok | grep imok || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
+  #   networks:
+  #     - kafka-net
 
   # Kafka Broker
   kafka:
