@@ -1,0 +1,305 @@
+#version: '3.8'
+
+services:
+  spark-master:
+    image: bitnami/spark:latest
+    command: bin/spark-class org.apache.spark.deploy.master.Master
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+    ports:
+      - "8081:8080"
+      - "7077:7077"
+    networks:
+      - kafka-net
+    volumes:
+      - ./jobs:/opt/bitnami/spark/jobs
+
+  spark-worker:
+    image: bitnami/spark:latest
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_CORES=4
+      - SPARK_WORKER_MEMORY=4g
+    depends_on:
+      - spark-master
+    networks:
+      - kafka-net
+    volumes:
+      - ./jobs:/opt/bitnami/spark/jobs
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: salary_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kafka-net
+  
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kafka-net
+  
+  airflow-init:
+    image: apache/airflow:2.5.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:admin@db/salary_db
+      AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__WEBSERVER_BASE_URL: https://54.159.197.139:8080
+      # AIRFLOW__WEBSERVER_BASE_URL: https://<your-ec2-public-dns>:8080
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
+      AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_CLASS_IN_EXTRA: 'true'
+      AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_PATH_IN_EXTRA: 'true'
+    depends_on:
+      - db
+    networks:
+      - kafka-net
+    volumes:
+      - ./jobs:/opt/airflow/jobs
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./certs:/etc/ssl/certs
+    mem_limit: 8g
+    entrypoint: >
+      bash -c "
+      airflow db init &&
+      airflow db upgrade &&
+      airflow users create --username admin --firstname Vaibhav --lastname Bansal --role Admin --email vaibhav.bansal945@gmail.com --password admin
+      "
+
+  airflow-webserver:
+    image: apache/airflow:2.5.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:admin@db/salary_db
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
+      AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+      AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
+      AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_CLASS_IN_EXTRA: 'true'
+      AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_PATH_IN_EXTRA: 'true'
+    depends_on:
+      db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    ports:
+      - "443:8080"
+    volumes:
+      - ./jobs:/opt/airflow/jobs
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./shared:/opt/airflow/shared
+      - ./certs:/etc/ssl/certs
+    entrypoint: >
+      sh -c "pip install apache-airflow-providers-snowflake apache-airflow-providers-docker apache-airflow-providers-postgres apache-airflow-providers-apache-spark pyspark && \
+        airflow webserver --ssl-certfile /etc/ssl/certs/cert.pem --ssl-keyfile /etc/ssl/certs/key.pem"
+    mem_limit: 8g
+    networks:
+      - kafka-net
+
+  airflow-scheduler:
+    image: apache/airflow:2.5.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:admin@db/salary_db
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
+      AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
+      AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+      AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_CLASS_IN_EXTRA: 'true'
+      AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_PATH_IN_EXTRA: 'true'
+    depends_on:
+      db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./jobs:/opt/airflow/jobs
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./shared:/opt/airflow/shared
+    entrypoint: >
+      sh -c "pip install apache-airflow-providers-snowflake apache-airflow-providers-docker apache-airflow-providers-postgres apache-airflow-providers-apache-spark pyspark && \
+        airflow scheduler"
+    command: ["airflow","scheduler"]
+    mem_limit: 8g
+    networks:
+      - kafka-net
+
+  airflow-worker:
+    image: apache/airflow:2.5.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:admin@db/salary_db
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+      AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
+      AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_CLASS_IN_EXTRA: 'true'
+      AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_PATH_IN_EXTRA: 'true'
+    depends_on:
+      db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./jobs:/opt/airflow/jobs
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./shared:/opt/airflow/shared
+    command: ["airflow","celery", "worker"]
+    mem_limit: 8g
+    entrypoint: >
+      sh -c "pip install apache-airflow-providers-snowflake apache-airflow-providers-docker apache-airflow-providers-postgres apache-airflow-providers-apache-spark pyspark && \
+        airflow celery worker"
+    networks:
+      - kafka-net
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kafka-net
+
+  # Kafka Broker
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://54.159.197.139:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      # KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kafka-net
+
+  flask:
+    build: ./backend
+    environment:
+      DB_HOST: db
+      DB_NAME: salary_db
+      DB_USER: postgres
+      DB_PASSWORD: admin
+    depends_on:
+      - db
+    ports:
+      - "5000:5000"
+    command: gunicorn -w 4 -b 0.0.0.0:5000 app:app
+    # command: flask run --host=0.0.0.0 --port=5000
+    networks:
+      - kafka-net
+  
+  kafka-producer:
+    build:
+      context: .
+      dockerfile: ./kafka/producer/Dockerfile
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - kafka-net
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      TOPIC_NAME: "job_salaries"
+  
+  kafka-consumer:
+    build: 
+      context: .
+      dockerfile: ./kafka/consumer/Dockerfile
+    depends_on:
+      kafka:
+          condition: service_healthy
+      db:
+        condition: service_started
+    networks:
+      - kafka-net
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      TOPIC_NAME: "job_salaries"
+      POSTGRES_URL: "jdbc:postgresql://db:5432/salary_db"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "admin"
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: 'salary_db'
+      DB_USER: 'postgres'
+      DB_PASS: 'admin'
+
+networks:
+  kafka-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  jobs:
+  logs:
+  shared:
+  spark:
