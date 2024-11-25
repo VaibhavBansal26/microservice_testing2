@@ -72,7 +72,7 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-      AIRFLOW__WEBSERVER_BASE_URL: https://3.86.97.105/airflow
+      AIRFLOW__WEBSERVER_BASE_URL: https://3.86.106.74/airflow
       # AIRFLOW__WEBSERVER_BASE_URL: https://<your-ec2-public-dns>:8080
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
@@ -105,7 +105,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
-      AIRFLOW__WEBSERVER_BASE_URL: https://3.86.97.105/airflow
+      AIRFLOW__WEBSERVER_BASE_URL: https://3.86.106.74/airflow
       AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
@@ -147,7 +147,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
-      AIRFLOW__WEBSERVER_BASE_URL: https://3.86.97.105/airflow
+      AIRFLOW__WEBSERVER_BASE_URL: https://3.86.106.74/airflow
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
@@ -191,6 +191,7 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_CLASS_IN_EXTRA: 'true'
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_PATH_IN_EXTRA: 'true'
+      AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX: 'True'
       AIRFLOW__CORE__FERNET_KEY: ''
     depends_on:
       db:
@@ -229,49 +230,6 @@ services:
     networks:
       - kafka-net
 
-  # zookeeper:
-  #   build:
-  #     context: .
-  #     dockerfile: ./zookeeper/Dockerfile
-  #   environment:
-  #     ZOOKEEPER_CLIENT_PORT: 2181
-  #     ZOOKEEPER_TICK_TIME: 2000
-  #     ZOOKEEPER_QUORUM_LISTEN_ON_ALL_IPS: 'true'
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok || exit 1"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 3
-  #   networks:
-  #     - kafka-net
-
-
-  # zookeeper:
-  #   image: confluentinc/cp-zookeeper:latest
-  #   environment:
-  #     ZOOKEEPER_CLIENT_PORT: 2181
-  #     ZOOKEEPER_TICK_TIME: 2000
-  #   # command: >
-  #   #   bash -c "
-  #   #   apt-get update &&
-  #   #   apt-get install -y netcat wget &&
-  #   #   /etc/confluent/docker/run
-  #   #   "
-  #   command: >
-  #     bash -c "
-  #     apt-get update &&
-  #     apt-get install -y grep &&
-  #     /etc/confluent/docker/run
-  #     "
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "echo ruok | grep imok || exit 1"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 3
-  #   networks:
-  #     - kafka-net
-
-  # Kafka Broker
   kafka:
     image: confluentinc/cp-kafka:latest
     depends_on:
@@ -283,9 +241,7 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://54.159.197.139/kafka
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      # KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics --bootstrap-server kafka:9092 --list || exit 0"]
