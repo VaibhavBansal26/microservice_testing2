@@ -209,21 +209,21 @@ services:
       - kafka-net
   
   zookeeper:
-  image: zookeeper:3.8.0
-  environment:
-    ZOO_MY_ID: 1
-    ZOO_PORT: 2181
-    ZOO_SERVERS: server.1=zookeeper:2888:3888
-    ZOOKEEPER_QUORUM_LISTEN_ON_ALL_IPS: 'true'
-  ports:
-    - "2181:2181"
-  healthcheck:
-    test: ["CMD", "echo", "ruok", "|", "nc", "127.0.0.1", "2181"]
-    interval: 10s
-    timeout: 5s
-    retries: 3
-  networks:
-    - kafka-net
+    image: zookeeper:3.8.0
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_PORT: 2181
+      ZOO_SERVERS: server.1=zookeeper:2888:3888
+      ZOOKEEPER_QUORUM_LISTEN_ON_ALL_IPS: 'true'
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD", "echo", "ruok", "|", "nc", "127.0.0.1", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - kafka-net
 
   # zookeeper:
   #   build:
