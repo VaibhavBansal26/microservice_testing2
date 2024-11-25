@@ -1,4 +1,4 @@
-FROM apache/airflow:2.5.0-python3.8
+FROM apache/airflow:2.5.3-python3.8
 
 USER root
 RUN apt-get update && \
@@ -16,5 +16,5 @@ ENV CLASSPATH=/opt/airflow/postgresql-42.5.4.jar
 ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-arm64
 
 USER airflow
-
+RUN chown -R airflow:airflow /opt/airflow
 RUN pip install --no-cache-dir --timeout=6000 apache-airflow[celery] apache-airflow-providers-apache-spark apache-airflow-providers-snowflake apache-airflow-providers-docker apache-airflow-providers-postgres apache-airflow-providers-jdbc pyspark

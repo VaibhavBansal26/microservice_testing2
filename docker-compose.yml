@@ -63,7 +63,7 @@ services:
       - kafka-net
   
   airflow-init:
-    image: apache/airflow:2.5.0
+    # image: apache/airflow:2.5.0
     build:
       context: .
       dockerfile: Dockerfile
@@ -72,7 +72,7 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-      AIRFLOW__WEBSERVER_BASE_URL: https://54.152.57.101/airflow
+      AIRFLOW__WEBSERVER_BASE_URL: https://18.206.254.152/airflow
       # AIRFLOW__WEBSERVER_BASE_URL: https://<your-ec2-public-dns>:8080
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
@@ -88,7 +88,7 @@ services:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./certs:/etc/ssl/certs
-    mem_limit: 8g
+    # mem_limit: 8g
     entrypoint: >
       bash -c '
       airflow db init &&
@@ -96,7 +96,7 @@ services:
       airflow users create --username admin --firstname Vaibhav --lastname Bansal --role Admin --email vaibhav.bansal945@gmail.com --password admin || echo "User already exists."'
 
   airflow-webserver:
-    image: apache/airflow:2.5.0
+    # image: apache/airflow:2.5.0
     build:
       context: .
       dockerfile: Dockerfile
@@ -105,7 +105,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:admin@db/salary_db
-      AIRFLOW__WEBSERVER_BASE_URL: https://54.152.57.101/airflow
+      AIRFLOW__WEBSERVER_BASE_URL: https://18.206.254.152/airflow
       AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
@@ -113,6 +113,7 @@ services:
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_CLASS_IN_EXTRA: 'true'
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_PATH_IN_EXTRA: 'true'
       AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX: 'True'
+      AIRFLOW__CORE__FERNET_KEY: ''
     depends_on:
       db:
         condition: service_healthy
@@ -137,7 +138,7 @@ services:
       - kafka-net
 
   airflow-scheduler:
-    image: apache/airflow:2.5.0
+    # image: apache/airflow:2.5.0
     build:
       context: .
       dockerfile: Dockerfile
@@ -153,6 +154,7 @@ services:
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_CLASS_IN_EXTRA: 'true'
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_PATH_IN_EXTRA: 'true'
       AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX: 'True'
+      AIRFLOW__CORE__FERNET_KEY: ''
     depends_on:
       db:
         condition: service_healthy
@@ -174,7 +176,7 @@ services:
       - kafka-net
 
   airflow-worker:
-    image: apache/airflow:2.5.0
+    # image: apache/airflow:2.5.0
     build:
       context: .
       dockerfile: Dockerfile
@@ -188,6 +190,7 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: 'ub_pass_2025'
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_CLASS_IN_EXTRA: 'true'
       AIRFLOW__PROVIDERS_JDBC__ALLOW_DRIVER_PATH_IN_EXTRA: 'true'
+      AIRFLOW__CORE__FERNET_KEY: ''
     depends_on:
       db:
         condition: service_healthy
